@@ -1,0 +1,11 @@
+# private project information
+private/
+
+# API configuration
+conf.py
+
+# data
+data/
+
+# Python
+__pycache__/
