@@ -23,15 +23,19 @@ class ParsedFile(object):
         self.dirname = os.path.dirname(filepath)
         self.filename = os.path.basename(filepath)
         self.name, self.ext = self.filename.split('.')
-        self.xmlps_id = None
         # submit
         self.input = self.filename
         self.input_path = self.filepath
         self.dt_submitted = None
+        self.xmlps_input_id = None
+        # job
+        self.xmlps_job_id = None
+        self.xmlps_job_status = None
         # retrieve
         self.output = None
         self.output_path = None
         self.dt_retrieved = None
+        self.xmlps_output_id = None
 
     def submit(self):
         # pre-processing
@@ -56,13 +60,13 @@ class ParsedFile(object):
         # API retrieve call
 
         # post-processing
-        self.output = self.name + '.jats.xml'
+        self.output = 'documents.zip'
         self.output_path = self.dirname + '/' + self.output
         self.dt_retrieved = dt.now()
 
     def __str__(self):
         return "{:>5} : {:s} --> {:s}".format(
-            self.xmlps_id or '<id?>',
+            self.xmlps_job_id or '<id?>',
             self.input or '',
             self.output or '<to-retreive>',
         )
