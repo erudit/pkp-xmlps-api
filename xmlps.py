@@ -5,10 +5,12 @@ import requests
 import sys
 import time
 
+import api
 from settings import (
     USER_EMAIL,
-    PASSWORD,
+    USER_PASSWORD,
     SUPPORTED_INPUT_FORMATS,
+    SUPPORTED_OUTPUT_FORMATS,
     WAIT_FOR_RETRIEVE,
 )
 
@@ -27,19 +29,18 @@ class ParsedFile(object):
         self.input = self.filename
         self.input_path = self.filepath
         self.dt_submitted = None
-        self.xmlps_input_id = None
+        self.input_id = None
         # job
-        self.xmlps_job_id = None
-        self.xmlps_job_status = None
+        self.job_id = None
+        self.job_status = None
         # retrieve
         self.output = None
         self.output_path = None
         self.dt_retrieved = None
-        self.xmlps_output_id = None
+        self.output_id = None
 
     def submit(self):
         # pre-processing
-        content = ''
         with open(self.input_path, 'rb') as f:
             content = f.read()
 
@@ -57,7 +58,10 @@ class ParsedFile(object):
         self.dt_submitted = dt.now()
 
     def retrieve(self):
-        # API retrieve call
+        # params
+        conversion_stage = SUPPORTED_OUTPUT_FORMATS['xml']
+
+        # API retrieve call (if status ok)
 
         # post-processing
         self.output = 'documents.zip'
@@ -66,7 +70,7 @@ class ParsedFile(object):
 
     def __str__(self):
         return "{:>5} : {:s} --> {:s}".format(
-            self.xmlps_job_id or '<id?>',
+            self.job_id or '<id?>',
             self.input or '',
             self.output or '<to-retreive>',
         )
