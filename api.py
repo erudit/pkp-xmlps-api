@@ -8,7 +8,7 @@ class Job():
     PKP XML Parsing Service API for conversion job.
     """
 
-    def submit(user_email, user_password, input, content, citation_style_hash):
+    def submit(user_email, user_password, input_filename, content, citation_style_hash):
         """Example request:
         http://example.com/api/job/submit
         POST parameters:
@@ -26,7 +26,7 @@ class Job():
         params = {
             'email':user_email,
             'password':user_password,
-            'fileName':input,
+            'fileName':input_filename,
             'fileContent':content,
             'citationStyleHash':citation_style_hash,
         }
@@ -75,7 +75,7 @@ class Job():
             # if job_status is 2 # Completed
             return job_status
 
-    def retrieve(user_email, user_password, job_id, conversion_stage, binary=False):
+    def retrieve(user_email, user_password, job_id, conversion_stage):
         """Example request:
         http://example.com/api/job/retrieve?email=user@example.com&password=password&id=123&conversionStage=10
 
@@ -95,13 +95,23 @@ class Job():
         response = requests.get(URL, params)
 
         # response content
-        if binary:
-            content = response.content
-        else:
-            content = response.text
+        error = False
+        try:
+            # error status is only returned in json format
+            content = response.json()
+            if content['status'] == 'error':
+                error = True
+        except:
+            # if response.json() doesn't raise exception
+            # then we have a file (no error)
+            pass
 
         # response usage
-        return content  # output : converted file content (binary or text)
+        if not error:
+            # output : converted file content (binary or text)
+            # response.content for binary
+            # response.text for text
+            return response
 
     def citation_style_list():
         """Example request:

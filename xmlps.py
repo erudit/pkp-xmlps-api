@@ -7,11 +7,13 @@ import time
 
 import api
 from settings import (
-    USER_EMAIL,
-    USER_PASSWORD,
     SUPPORTED_INPUT_FORMATS,
     SUPPORTED_OUTPUT_FORMATS,
+    CITATION_STYLE_HASH,
+    OUTPUT_FORMAT,
     WAIT_FOR_RETRIEVE,
+    USER_EMAIL,
+    USER_PASSWORD,
 )
 
 
@@ -26,53 +28,101 @@ class ParsedFile(object):
         self.filename = os.path.basename(filepath)
         self.name, self.ext = self.filename.split('.')
         # submit
-        self.input = self.filename
+        self.input_filename = self.filename
         self.input_path = self.filepath
+        self.citation_style_hash = CITATION_STYLE_HASH
         self.dt_submitted = None
-        self.input_id = None
         # job
         self.job_id = None
         self.job_status = None
         # retrieve
-        self.output = None
+        self.output_format = None
+        self.output_binary = None
+        self.output_filename = None
         self.output_path = None
         self.dt_retrieved = None
-        self.output_id = None
 
     def submit(self):
-        # pre-processing
+        # pre-call
         with open(self.input_path, 'rb') as f:
             content = f.read()
 
-        post = {
-            'email':USER_EMAIL,
-            'password':PASSWORD,
-            'fileName':self.input,
-            'citationStyleHash':'3f0f7fede090f24cc71b7281073996be',
-            'fileContent':content,
+        params = {
+            'user_email':USER_EMAIL,
+            'user_password':USER_PASSWORD,
+            'input_filename':self.input_filename,
+            'content':content,
+            'citation_style_hash':self.citation_style_hash,
         }
 
         # API submit call
+        id = api.Job.submit(**params)
 
-        # post-processing
-        self.dt_submitted = dt.now()
+        # post-call
+        if id:
+            self.job_id = id
+            self.dt_submitted = dt.now()
+
+    def status(self):
+        # if job_status is 2 : it means job is completed
+        if self.job_status is not 2:
+            # pre-call
+            params = {
+                'user_email': USER_EMAIL,
+                'user_password': USER_PASSWORD,
+                'job_id': self.job_id,
+            }
+
+            # API status call
+            job_status = api.Job.status(**params)
+
+            # post-call
+            self.job_status = job_status
+
+        return self.job_status
 
     def retrieve(self):
-        # params
-        conversion_stage = SUPPORTED_OUTPUT_FORMATS['xml']
+        # if job_status is 2 : it means job is completed
+        if self.status() is 2:
 
-        # API retrieve call (if status ok)
+            # pre-call
+            self.output_format = OUTPUT_FORMAT
+            fileformat = SUPPORTED_OUTPUT_FORMATS[self.output_format]
+            conversion_stage = fileformat['conversion_stage']
 
-        # post-processing
-        self.output = 'documents.zip'
-        self.output_path = self.dirname + '/' + self.output
-        self.dt_retrieved = dt.now()
+            params = {
+                'user_email': USER_EMAIL,
+                'user_password': USER_PASSWORD,
+                'job_id': self.job_id,
+                'conversion_stage': conversion_stage,
+            }
+
+            # API retrieve call
+            response = api.Job.retrieve(**params)
+
+            # post-call
+            if response:
+                ext = fileformat['ext']
+                self.output_binary = fileformat['binary']
+                self.output_filename = self.name + '.' ext
+                self.output_path = self.dirname + '/' + self.filename
+
+                if self.output_binary:
+                    mode = 'wb'
+                    with open(self.output_path, mode) as f:
+                        f.write(response.content)
+                else:
+                    mode = 'w'
+                    with open(self.output_path, mode) as f:
+                        f.write(response.text)
+
+                self.dt_retrieved = dt.now()
 
     def __str__(self):
         return "{:>5} : {:s} --> {:s}".format(
             self.job_id or '<id?>',
-            self.input or '',
-            self.output or '<to-retreive>',
+            self.input_filename or '',
+            self.output_filename or '<to-retreive>',
         )
 
 
