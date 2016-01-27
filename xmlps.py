@@ -104,8 +104,8 @@ class ParsedFile(object):
             if response:
                 ext = fileformat['ext']
                 self.output_binary = fileformat['binary']
-                self.output_filename = self.name + '.' ext
-                self.output_path = self.dirname + '/' + self.filename
+                self.output_filename = self.name + '.' + ext
+                self.output_path = self.dirname + '/' + self.output_filename
 
                 if self.output_binary:
                     mode = 'wb'
