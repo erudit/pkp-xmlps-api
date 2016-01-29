@@ -164,7 +164,7 @@ class ParsedFile(object):
     def __str__(self):
         if self.to_submit():
             todo = 'to submit'
-        elif self.to_retrieve():
+        elif not self.status_ok() or self.to_retrieve():
             todo = 'to retrieve'
         else:
             todo = 'done'
