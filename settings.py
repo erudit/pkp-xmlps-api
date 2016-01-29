@@ -93,4 +93,7 @@ WAIT_FOR_RETRIEVE = 60   # seconds
 USER_EMAIL = 'set real value in conf.py'
 USER_PASSWORD = 'set real value in conf.py'
 
+# data persistence
+FILES_PICKLE = 'files.p'
+
 from conf import * # noqa

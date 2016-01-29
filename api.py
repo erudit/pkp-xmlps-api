@@ -35,14 +35,15 @@ class Job():
         response = requests.post(URL, params)
 
         # response content
-        content = response.json()
-        status = content['status']
-        id = content['id']
-        flash_messages = content['flashMessages']
+        if response.status_code != 500:
+            content = response.json()
+            status = content['status']
+            id = content['id']
+            flash_messages = content['flashMessages']
 
-        # response usage
-        if status == 'success':
-            return id
+            # response usage
+            if status == 'success':
+                return id
 
     def status(user_email, user_password, job_id):
         """Example request:
@@ -63,17 +64,18 @@ class Job():
         response = requests.get(URL, params)
 
         # response content
-        content = response.json()
-        status = content['status']
-        job_status = content.get('jobStatus', 0)
-        job_status_description = content.get('jobStatusDescription', '')
-        error = content.get('error', '')
-        flash_messages = content['flashMessages']
+        if response.status_code != 500:
+            content = response.json()
+            status = content['status']
+            job_status = content.get('jobStatus', 0)
+            job_status_description = content.get('jobStatusDescription', '')
+            error = content.get('error', '')
+            flash_messages = content['flashMessages']
 
-        # response usage
-        if status == 'success':
-            # if job_status is 2 # Completed
-            return job_status
+            # response usage
+            if status == 'success':
+                # if job_status is 2 # Completed
+                return job_status
 
     def retrieve(user_email, user_password, job_id, conversion_stage):
         """Example request:
@@ -95,23 +97,24 @@ class Job():
         response = requests.get(URL, params)
 
         # response content
-        error = False
-        try:
-            # error status is only returned in json format
-            content = response.json()
-            if content['status'] == 'error':
-                error = True
-        except:
-            # if response.json() doesn't raise exception
-            # then we have a file (no error)
-            pass
+        if response.status_code != 500:
+            error = False
+            try:
+                # error status is only returned in json format
+                content = response.json()
+                if content['status'] == 'error':
+                    error = True
+            except:
+                # if response.json() doesn't raise exception
+                # then we have a file (no error)
+                pass
 
-        # response usage
-        if not error:
-            # output : converted file content (binary or text)
-            # response.content for binary
-            # response.text for text
-            return response
+            # response usage
+            if not error:
+                # output : converted file content (binary or text)
+                # response.content for binary
+                # response.text for text
+                return response
 
     def citation_style_list():
         """Example request:

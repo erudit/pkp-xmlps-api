@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime as dt
 import os
+import pickle
 import requests
 import sys
 import time
@@ -14,6 +15,7 @@ from settings import (
     WAIT_FOR_RETRIEVE,
     USER_EMAIL,
     USER_PASSWORD,
+    FILES_PICKLE,
 )
 
 
@@ -26,7 +28,9 @@ class ParsedFile(object):
         self.filepath = filepath
         self.dirname = os.path.dirname(filepath)
         self.filename = os.path.basename(filepath)
-        self.name, self.ext = self.filename.split('.')
+        split = self.filename.split('.')
+        self.ext = split[-1]
+        self.name = '.'.join(split[:-1])
         # submit
         self.input_filename = self.filename
         self.input_path = self.filepath
@@ -42,30 +46,47 @@ class ParsedFile(object):
         self.output_path = None
         self.dt_retrieved = None
 
+    def to_submit(self):
+        # to submit if we don't have a job id for this file yet
+        if not self.job_id:
+            return True
+        else:
+            return False
+
     def submit(self):
-        # pre-call
-        with open(self.input_path, 'rb') as f:
-            content = f.read()
+        if self.to_submit():
 
-        params = {
-            'user_email':USER_EMAIL,
-            'user_password':USER_PASSWORD,
-            'input_filename':self.input_filename,
-            'content':content,
-            'citation_style_hash':self.citation_style_hash,
-        }
+            # pre-call
+            with open(self.input_path, 'rb') as f:
+                content = f.read()
 
-        # API submit call
-        id = api.Job.submit(**params)
+            params = {
+                'user_email':USER_EMAIL,
+                'user_password':USER_PASSWORD,
+                'input_filename':self.input_filename,
+                'content':content,
+                'citation_style_hash':self.citation_style_hash,
+            }
 
-        # post-call
-        if id:
-            self.job_id = id
-            self.dt_submitted = dt.now()
+            # API submit call
+            id = api.Job.submit(**params)
+
+            # post-call
+            if id:
+                self.job_id = id
+                self.dt_submitted = dt.now()
+                self.report_submission()
+
+    def status_ok(self):
+        # if job_status is 2 : it means job is completed
+        if self.job_status is 2:
+            return True
+        else:
+            return False
 
     def status(self):
-        # if job_status is 2 : it means job is completed
-        if self.job_status is not 2:
+        if self.job_id and not self.status_ok():
+
             # pre-call
             params = {
                 'user_email': USER_EMAIL,
@@ -79,17 +100,24 @@ class ParsedFile(object):
             # post-call
             self.job_status = job_status
 
-        return self.job_status
+    def to_retrieve(self):
+        # to be retrieved if we know that status is ok
+        if self.status_ok() and not self.dt_retrieved:
+            return True
+        else:
+            return False
 
     def retrieve(self):
-        # if job_status is 2 : it means job is completed
-        if self.status() is 2:
+        if not self.to_retrieve():
+            # update the status once
+            self.status()
+
+        if self.to_retrieve():
 
             # pre-call
             self.output_format = OUTPUT_FORMAT
             fileformat = SUPPORTED_OUTPUT_FORMATS[self.output_format]
             conversion_stage = fileformat['conversion_stage']
-
             params = {
                 'user_email': USER_EMAIL,
                 'user_password': USER_PASSWORD,
@@ -117,12 +145,34 @@ class ParsedFile(object):
                         f.write(response.text)
 
                 self.dt_retrieved = dt.now()
+                self.report_retrieval()
+
+    def report_submission(self):
+        print("{} : {}".format(
+                self.input_filename,
+                self.job_id or 'failed',
+            )
+        )
+
+    def report_retrieval(self):
+        print("{} : {}".format(
+                self.filename,
+                self.output_filename or 'failed',
+            )
+        )
 
     def __str__(self):
-        return "{:>5} : {:s} --> {:s}".format(
+        if self.to_submit():
+            todo = 'to submit'
+        elif self.to_retrieve():
+            todo = 'to retrieve'
+        else:
+            todo = 'done'
+        return "{:>5} : {:s} --> {:s} [{:s}]".format(
             self.job_id or '<id?>',
-            self.input_filename or '',
-            self.output_filename or '<to-retreive>',
+            self.input_filename or '<input?>',
+            self.output_filename or '<output?>',
+            todo,
         )
 
 
@@ -130,8 +180,14 @@ def  get_files(path):
     """Returns a dict where full input file path is the key and a
     ParsedFile object is the value.
     """
-    files = {}
-    if os.path.isfile(path):
+    # load files already processed
+    if os.path.isfile(FILES_PICKLE):
+        files = pickle.load(open(FILES_PICKLE, 'rb'))
+    else:
+        files = {}
+
+    # add requested files
+    if os.path.isfile(path) and path not in files:
         f = ParsedFile(path)
         if f.ext in SUPPORTED_INPUT_FORMATS:
             files[path] = f
@@ -139,11 +195,15 @@ def  get_files(path):
         for (dirpath, dirnames, filenames) in os.walk(path):
             for filename in filenames:
                 filepath = dirpath + '/' + filename
-                f = ParsedFile(filepath)
-                if f.ext in SUPPORTED_INPUT_FORMATS:
-                    files[filepath] = f
+                if filepath not in files:
+                    f = ParsedFile(filepath)
+                    if f.ext in SUPPORTED_INPUT_FORMATS:
+                        files[filepath] = f
     return files
 
+
+def save_files(files):
+    pickle.dump(files, open(FILES_PICKLE, 'wb'))
 
 def cli_parse_args():
 
@@ -202,7 +262,6 @@ def cli_parse_args():
 
     return parser.parse_args()
 
-
 if __name__ == '__main__':
     args = cli_parse_args()
     files = get_files(args.path)
@@ -223,30 +282,32 @@ if __name__ == '__main__':
 
         # report body
         if args.command == 'submit':
-            print('SUBMITTED')
+            print('SUBMITTING')
             print('-' * WIDTH)
             for filepath, f in files.items():
-                # f.submit()
-                print(f)
+                f.submit()
         elif args.command == 'retrieve':
-            print('RETRIEVED')
+            print('RETRIEVING')
             print('-' * WIDTH)
             for filepath, f in files.items():
-                #f.retrieve()
-                print(f)
+                f.retrieve()
         elif args.command == 'parse':
-            print('SUBMITTED')
+            print('SUBMITTING')
             print('-' * WIDTH)
             for filepath, f in files.items():
-                #f.submit()
-                print(f)
+                f.submit()
             print(' ' * WIDTH)
             time.sleep(args.wait)
-            print('RETRIEVED')
+            print('RETRIEVING')
             print('-' * WIDTH)
             for filepath, f in files.items():
-                #f.retrieve()
-                print(f)
+                f.retrieve()
 
         # report footer
         print(' ' * WIDTH)
+        print('FINAL REPORT')
+        print('-' * WIDTH)
+        for filename, f in files.items():
+            print(f)
+        print(' ' * WIDTH)
+        save_files(files)

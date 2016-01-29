@@ -9,3 +9,6 @@ data/
 
 # Python
 __pycache__/
+
+# Pickle of processed files
+files.p
