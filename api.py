@@ -21,14 +21,15 @@ class Job():
         Example response:
         {"status":"success","id":123}
         """
+
         # parameters
         URL = SERVICE_URL + 'api/job/submit'
         params = {
-            'email':user_email,
-            'password':user_password,
-            'fileName':input_filename,
-            'fileContent':content,
-            'citationStyleHash':citation_style_hash,
+            'email': user_email,
+            'password': user_password,
+            'fileName': input_filename,
+            'fileContent': content,
+            'citationStyleHash': citation_style_hash,
         }
 
         # request
@@ -52,12 +53,13 @@ class Job():
         Example response:
         {"status":"success","jobStatus":0,"jobStatusDescription":"Pending"}
         """
+
         # parameters
         URL = SERVICE_URL + 'api/job/status'
         params = {
-            'email':user_email,
-            'password':user_password,
-            'id':job_id,
+            'email': user_email,
+            'password': user_password,
+            'id': job_id,
         }
 
         # request
@@ -84,13 +86,14 @@ class Job():
         Example response:
         The requested document or a JSON string with an error message.
         """
+
         # parameters
         URL = SERVICE_URL + 'api/job/retrieve'
         params = {
-            'email':user_email,
-            'password':user_password,
-            'id':job_id,
-            'conversionStage':conversion_stage,
+            'email': user_email,
+            'password': user_password,
+            'id': job_id,
+            'conversionStage': conversion_stage,
         }
 
         # request
@@ -121,8 +124,12 @@ class Job():
         http://example.com/api/job/citationStyleList
 
         Example response:
-        {"status":"success","citationStyles":{"c6de5efe3294b26391ea343053c19a84":"ACM SIG Proceedings (\u0022et al.\u0022 for 15+ authors)"...
+        {"status":"success",
+        "citationStyles": {
+            "c6de5efe3294b26391ea343053c19a84":
+                "ACM SIG Proceedings (\u0022et al.\u0022 for 15+ authors)"...
         """
+
         # parameters
         URL = SERVICE_URL + 'api/job/citationStyleList'
 

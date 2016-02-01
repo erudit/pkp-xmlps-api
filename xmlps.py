@@ -2,8 +2,6 @@ import argparse
 from datetime import datetime as dt
 import os
 import pickle
-import requests
-import sys
 import time
 
 import api
@@ -61,11 +59,11 @@ class ParsedFile(object):
                 content = f.read()
 
             params = {
-                'user_email':USER_EMAIL,
-                'user_password':USER_PASSWORD,
-                'input_filename':self.input_filename,
-                'content':content,
-                'citation_style_hash':self.citation_style_hash,
+                'user_email': USER_EMAIL,
+                'user_password': USER_PASSWORD,
+                'input_filename': self.input_filename,
+                'content': content,
+                'citation_style_hash': self.citation_style_hash,
             }
 
             # API submit call
@@ -176,10 +174,11 @@ class ParsedFile(object):
         )
 
 
-def  get_files(path):
+def get_files(path):
     """Returns a dict where full input file path is the key and a
     ParsedFile object is the value.
     """
+
     # load files already processed
     if os.path.isfile(FILES_PICKLE):
         files = pickle.load(open(FILES_PICKLE, 'rb'))
@@ -205,6 +204,7 @@ def  get_files(path):
 def save_files(files):
     pickle.dump(files, open(FILES_PICKLE, 'wb'))
 
+
 def cli_parse_args():
 
     # parsers
@@ -218,11 +218,11 @@ def cli_parse_args():
 
     # path argument
     path_arg = {
-        'dest':'path',
-        'type':str,
-        'nargs':'?',  # path is not required
-        'default':'data',
-        'help':"""Path of the local file to submit to the service.
+        'dest': 'path',
+        'type': str,
+        'nargs': '?',  # path is not required
+        'default': 'data',
+        'help': """Path of the local file to submit to the service.
         ex.: python api.py submit data/1017687ar/Input.doc
         Or path of a directory to submit : all .pdf, .doc, .docx or .odt files
         will be automatically submitted.
